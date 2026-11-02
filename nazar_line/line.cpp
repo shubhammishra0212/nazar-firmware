@@ -45,7 +45,16 @@ void Line::update(uint32_t nowMs, bool irPresent) {
   last_ = nowMs;
   bool wasRunning = running();
 
-  // 1. IR debounce: the level must stay the same for IR_DEBOUNCE_MS
+  // 1. clocks: belt running time drives every position timer
+  //    (first, so a timer started in this tick counts from the next one)
+  if (wasRunning) {
+    runClock_ += dt;
+    for (int i = 0; i < arrCount_; i++) arr_[i].left = minus(arr_[i].left, dt);
+    for (int i = 0; i < gateCount_; i++) gate_[i].left = minus(gate_[i].left, dt);
+  }
+  if (inspecting_ && !stopped_ && !held_) inspElapsed_ += dt;
+
+  // 2. IR debounce: the level must stay the same for IR_DEBOUNCE_MS
   if (irPresent != irRaw_) {
     irRaw_ = irPresent;
     irChangedAt_ = nowMs;
@@ -54,14 +63,6 @@ void Line::update(uint32_t nowMs, bool irPresent) {
     irStable_ = irRaw_;
     if (irStable_ && wasRunning) onRisingEdge();  // edges with the belt off are hands, not parts
   }
-
-  // 2. clocks: belt running time drives every position timer
-  if (wasRunning) {
-    runClock_ += dt;
-    for (int i = 0; i < arrCount_; i++) arr_[i].left = minus(arr_[i].left, dt);
-    for (int i = 0; i < gateCount_; i++) gate_[i].left = minus(gate_[i].left, dt);
-  }
-  if (inspecting_ && !stopped_ && !held_) inspElapsed_ += dt;
 
   // 3. gate timers that reached the gate
   for (int i = 0; i < gateCount_;) {
