@@ -12,9 +12,11 @@ Restart rule: read this file and `git log` first; never redo a step marked Done.
 - `test/line_test.cpp` + `test/Makefile`: `make -C test` -> 55 checks PASS (11 scenarios);
   a mutation (gate timer never counting down) makes 8 checks fail, so the test has teeth.
 - `README.md`
+- `docs/firmware.md` -> `docs/NAZAR-01-Firmware.pdf` (5 pages, checked visually), copied to
+  `../PDFs/NAZAR-01-Firmware.pdf`
 
 ## In progress
 - bring-up compile results; recompile nazar_line after the line.cpp reorder
 
 ## Next (in order)
-1. `docs/firmware.md` -> `docs/NAZAR-01-Firmware.pdf`, copy to `../PDFs/`
+1. finish compile table (bring-up 03-08 + nazar_line recompile), then report to the lead
