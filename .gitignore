@@ -1,0 +1,11 @@
+# build output
+build/
+*.bin
+*.elf
+*.map
+test/line_test
+test/*.o
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
