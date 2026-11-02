@@ -1,19 +1,23 @@
 /*
-  NAZAR bring-up 08 - belt relay (IN -> GPIO26, module VCC on 5.5 V, active LOW)
+  NAZAR bring-up 08 - belt relay (IN -> GPIO26, module VCC on 5.5 V)
   Commands: 1 = belt on, 0 = belt off (Newline). Starts OFF.
-  ON  = pin OUTPUT LOW  -> relay clicks, its LED lights, 5.5 V reaches the motor.
-  OFF = pin INPUT (floating) -> the module's own pull-up turns the relay off.
-        (Writing 3.3 V HIGH may NOT switch a 5 V module off - that is why we float it.)
-  If it is the other way round, the module's H/L jumper is on H: move it to L.
+  Our 1-CH board switches the coil with a BC547 (NPN), so it is ACTIVE HIGH:
+  ON  = pin HIGH (3.3 V) -> relay clicks, red LED lights, 5.5 V reaches the motor.
+  OFF = pin LOW          -> relay released, motor stops.
+  Using an active-LOW module (H/L jumper on L) instead? Set ACTIVE_HIGH to false.
 */
 const int PIN = 26;
+const bool ACTIVE_HIGH = true;
 
 void belt(bool on) {
-  if (on) {
+  if (ACTIVE_HIGH) {
+    digitalWrite(PIN, on ? HIGH : LOW);
+    pinMode(PIN, OUTPUT);
+  } else if (on) {
     digitalWrite(PIN, LOW);
     pinMode(PIN, OUTPUT);
   } else {
-    pinMode(PIN, INPUT);
+    pinMode(PIN, INPUT);  // active-LOW module: float so its pull-up releases the relay
   }
   Serial.println(on ? "belt ON  (relay should click, LED on, motor runs)"
                     : "belt OFF (relay released, motor stops)");

@@ -31,7 +31,7 @@ ESP32 DevKitC 38-pin (WROOM, CP2102, shows up as `/dev/cu.usbserial-0001`).
 | DS18B20 (motor temp) | GPIO 4 | 4.7 kΩ pull-up DQ to 3V3; read once a second without blocking |
 | FC-51 IR (part sensor) | GPIO 18 | LOW = part present, 20 ms debounce |
 | MG996R reject gate | GPIO 13 via 330 Ω | 50 Hz LEDC PWM, closed 0°, open 70° (`config.h`) |
-| Belt relay IN | GPIO 26 | active LOW; OFF = pin set to INPUT (floating) so a 5 V module really releases |
+| Belt relay IN | GPIO 26 | active HIGH (BC547 board): HIGH = run, LOW = stop; `RELAY_ACTIVE_HIGH` in `config.h` |
 
 The belt motor is a 12 V 25GA-370, run at about half speed from the 5.5 V buck and switched by the relay. Only the LED strip uses the 12 V buck.
 

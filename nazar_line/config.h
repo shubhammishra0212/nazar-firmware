@@ -12,7 +12,10 @@ constexpr int PIN_SCL = 22;
 constexpr int PIN_IR = 18;          // FC-51 OUT, LOW = part in front
 constexpr int PIN_DS18B20 = 4;      // 4.7 k pull-up to 3V3
 constexpr int PIN_GATE_SERVO = 13;  // MG996R signal through 330 R
-constexpr int PIN_BELT_RELAY = 26;  // relay IN, active LOW (LOW = belt runs, INPUT/float = stop)
+constexpr int PIN_BELT_RELAY = 26;  // relay IN (see RELAY_ACTIVE_HIGH)
+// Our 1-CH board drives the coil with a BC547 (NPN): IN HIGH = relay on = belt runs, LOW = stop.
+// Set false for an optocoupler module with an H/L jumper on L (LOW = run, released/INPUT = stop).
+constexpr bool RELAY_ACTIVE_HIGH = true;
 
 // ---------- I2C
 constexpr uint8_t I2C_INA219 = 0x40;

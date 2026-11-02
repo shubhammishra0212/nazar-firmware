@@ -6,7 +6,10 @@
 static bool on_ = false;
 
 static void drive(bool run) {
-  if (run) {
+  if (RELAY_ACTIVE_HIGH) {
+    digitalWrite(PIN_BELT_RELAY, run ? HIGH : LOW);  // set the level first, then enable the output
+    pinMode(PIN_BELT_RELAY, OUTPUT);
+  } else if (run) {
     digitalWrite(PIN_BELT_RELAY, LOW);  // set the level first so the pin never glitches HIGH
     pinMode(PIN_BELT_RELAY, OUTPUT);
   } else {

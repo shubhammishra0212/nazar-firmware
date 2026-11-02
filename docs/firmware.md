@@ -145,21 +145,25 @@ sketch 07 lets you find the right angles by typing them.
 The servo needs its own 5-6 V supply with its ground joined to the ESP32 ground. Powering it
 from the ESP32 makes the board reset when the servo moves.
 
-## 7. The belt relay: active-low and "float to switch off"
+## 7. The belt relay: active-high (BC547 board)
 
 The belt motor needs 5.5 V and up to an amp; the ESP32 pin gives 3.3 V and a few milliamps. A
 relay module bridges the gap: a small signal switches a mechanical contact in the motor line.
 
-Our module is **active-low**: the relay turns on when its IN pin is pulled to 0 V. The module
-runs on 5 V and has its own pull-up resistor to 5 V on IN. Driving the ESP32 pin "HIGH" only
-gives 3.3 V, and on many modules 3.3 V is not high enough to switch the relay off: the belt
-would never stop. So:
+Our module is a simple "1-CH RELAY" board: IN goes through a resistor to a **BC547** (NPN)
+transistor that switches the 5 V coil. That makes it **active-high** — the team checked it by
+touching IN to 3.3 V (click) — and 3.3 V from the ESP32 is plenty to turn a BC547 on. So:
 
-- **belt on** = pin is an OUTPUT at LOW;
-- **belt off** = pin is switched to INPUT (it "floats"), the module's own pull-up takes IN to
-  5 V, and the relay releases.
+- **belt on** = pin is an OUTPUT at HIGH (3.3 V);
+- **belt off** = pin is an OUTPUT at LOW (0 V).
 
-At power-on every ESP32 pin starts as an input, so the belt is off while the board boots.
+`beltBegin()` is the first thing `setup()` does, so the pin is driven LOW (belt off) right after
+boot. While the board is still booting the pin is an input; the BC547 stays off with a floating
+base on a short wire, and a 10 kΩ resistor from IN to GND makes that certain.
+
+`RELAY_ACTIVE_HIGH` in `config.h` switches back to the other common kind of module
+(optocoupler + H/L jumper on L): there LOW = on, and the pin is released to INPUT to switch it
+off, because 3.3 V HIGH is not always enough to release a module that pulls IN up to 5 V.
 
 ## 8. The line state machine
 
@@ -325,7 +329,7 @@ Verified (on the Mac, 2 Nov 2026):
 - The sensor register settings and conversions (INA219 scale, MPU range, BH1750 lux) against
   real readings. They follow the datasheets and the previous NAZAR firmware.
 - The servo angles 0° / 70° for our gate arm; tune with sketch 07.
-- That the relay releases when the pin floats on *our* module (the previous firmware used the same method).
+- The relay switching from GPIO26 HIGH / LOW on the real BC547 board (checked by hand with IN to 3.3 V only).
 - The real `stop_ms` and `gate_ms` for our belt speed and distances: measure, then send
   `SET stop_ms ...` / `SET gate_ms ...` from the console.
 - Timing of the whole loop under load (MPU at 200 Hz with the DS18B20 read in the same second).

@@ -28,7 +28,7 @@ Restart rule: read this file and `git log` first; never redo a step marked Done.
 | 08_relay_belt | 272456 B | |
 
 ## Not verified (no board connected)
-- real sensor readings / scaling, servo angles, relay release by floating pin,
+- real sensor readings / scaling, servo angles, relay on/off from GPIO26 HIGH/LOW (BC547 board, active HIGH),
   real stop_ms / gate_ms for the belt, loop timing under load
 
 ## Next
