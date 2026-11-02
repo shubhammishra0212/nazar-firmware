@@ -1,7 +1,7 @@
 /*
   NAZAR bring-up 08 - belt relay (IN -> GPIO26, module VCC on 5.5 V, active LOW)
   Commands: 1 = belt on, 0 = belt off (Newline). Starts OFF.
-  ON  = pin OUTPUT LOW  -> relay clicks, its LED lights, 12 V reaches the motor.
+  ON  = pin OUTPUT LOW  -> relay clicks, its LED lights, 5.5 V reaches the motor.
   OFF = pin INPUT (floating) -> the module's own pull-up turns the relay off.
         (Writing 3.3 V HIGH may NOT switch a 5 V module off - that is why we float it.)
   If it is the other way round, the module's H/L jumper is on H: move it to L.

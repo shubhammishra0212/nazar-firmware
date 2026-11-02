@@ -1,9 +1,9 @@
 /*
   NAZAR bring-up 02 - INA219 belt power monitor (I2C 0x40, raw registers, no library)
-  Wiring: VCC 3V3, GND, SDA 21, SCL 22. Power path: 12 V + -> VIN+ , VIN- -> motor (via relay).
+  Wiring: VCC 3V3, GND, SDA 21, SCL 22. Power path: 5.5 V + -> S1 -> VIN+ , VIN- -> motor (via relay).
   Prints bus voltage and current twice a second.
   Test: with the belt off, mA is about 0. Run the belt (sketch 08 or a jumper) and mA should
-  jump to roughly 150-400 mA, V should read close to 12 V.
+  jump to roughly 150-400 mA, V should read close to 5.5 V.
 */
 #include <Wire.h>
 
@@ -55,7 +55,7 @@ void loop() {
   float v = (bus >> 3) * 0.004;
   float ma = (int16_t)sh * 0.01 / SHUNT_OHM;
   Serial.printf("INA219: %.2f V  %.1f mA", v, ma);
-  if (v < 1.0) Serial.print("   (no voltage on VIN-: is 12 V connected?)");
+  if (v < 1.0) Serial.print("   (no voltage on VIN-: is the 5.5 V rail on and S1 on?)");
   if (ma < -5) Serial.print("   (negative: VIN+ and VIN- are swapped)");
   Serial.println();
   delay(500);

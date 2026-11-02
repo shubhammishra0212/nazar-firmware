@@ -1,4 +1,4 @@
-/*
+ /*
   NAZAR line controller - ESP32 firmware 2.0.0  (INDUX 5.0, Team Parakh)
 
   Board : ESP32 Dev Module (DevKitC WROOM), esp32 core 3.x      Serial: 115200, JSON lines

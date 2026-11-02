@@ -25,7 +25,7 @@ ESP32 DevKitC 38-pin (WROOM, CP2102, shows up as `/dev/cu.usbserial-0001`).
 
 | Part | Connection | Notes |
 |---|---|---|
-| INA219 (belt V / mA) | I²C SDA 21, SCL 22, addr 0x40 | 0.1 Ω shunt in the 12 V belt line |
+| INA219 (belt V / mA) | I²C SDA 21, SCL 22, addr 0x40 | 0.1 Ω shunt in the 5.5 V belt line |
 | MPU-6050 (vibration) | I²C, addr 0x68 | clones answer WHO_AM_I 0x70/0x72/0x98, accepted; uses \|a\| so any mounting angle works |
 | BH1750 (tunnel light) | I²C, addr 0x23 | continuous 1 lx mode |
 | DS18B20 (motor temp) | GPIO 4 | 4.7 kΩ pull-up DQ to 3V3; read once a second without blocking |
@@ -33,7 +33,7 @@ ESP32 DevKitC 38-pin (WROOM, CP2102, shows up as `/dev/cu.usbserial-0001`).
 | MG996R reject gate | GPIO 13 via 330 Ω | 50 Hz LEDC PWM, closed 0°, open 70° (`config.h`) |
 | Belt relay IN | GPIO 26 | active LOW; OFF = pin set to INPUT (floating) so a 5 V module really releases |
 
-The belt motor is a 12 V 25GA-370 switched by the relay.
+The belt motor is a 12 V 25GA-370, run at about half speed from the 5.5 V buck and switched by the relay. Only the LED strip uses the 12 V buck.
 
 ## Build and upload
 

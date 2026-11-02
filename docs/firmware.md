@@ -77,7 +77,7 @@ When it comes back (wire pushed in again), a new `hello` message tells the Mac.
 
 ### INA219: belt motor voltage and current
 
-The 12 V supply for the belt motor passes through a tiny 0.1 Ω resistor (the "shunt") on the
+The 5.5 V supply for the belt motor passes through a tiny 0.1 Ω resistor (the "shunt") on the
 INA219 board. Current through a resistor makes a small voltage across it (Ohm's law, V = I·R):
 300 mA gives 30 mV. The INA219 measures that voltage very precisely, and also the voltage of the
 line itself. We set its configuration register to: 32 V range, ±320 mV shunt range, 12-bit,
@@ -147,8 +147,8 @@ from the ESP32 makes the board reset when the servo moves.
 
 ## 7. The belt relay: active-low and "float to switch off"
 
-The belt motor needs 12 V and up to an amp; the ESP32 pin gives 3.3 V and a few milliamps. A
-relay module bridges the gap: a small signal switches a mechanical contact in the 12 V line.
+The belt motor needs 5.5 V and up to an amp; the ESP32 pin gives 3.3 V and a few milliamps. A
+relay module bridges the gap: a small signal switches a mechanical contact in the motor line.
 
 Our module is **active-low**: the relay turns on when its IN pin is pulled to 0 V. The module
 runs on 5 V and has its own pull-up resistor to 5 V on IN. Driving the ESP32 pin "HIGH" only
@@ -278,7 +278,7 @@ that.
 | Sketch | What you should see |
 |---|---|
 | `01_i2c_scan` | lists 0x23, 0x40, 0x68 with PASS next to each |
-| `02_ina219` | about 0 mA with the belt off, a few hundred mA with it on, about 12 V |
+| `02_ina219` | about 0 mA with the belt off, a few hundred mA with it on, about 5.5 V |
 | `03_mpu6050` | WHO_AM_I, \|a\| about 1.00 g, vib jumps when you tap the table |
 | `04_bh1750` | lux drops when you cover it with your hand |
 | `05_ds18b20` | 25-35 °C, rises when you hold the probe |
@@ -287,7 +287,7 @@ that.
 | `08_relay_belt` | type `1` / `0`; the relay clicks and the belt runs / stops |
 
 Each prints plain sentences at 115 200 baud, with a hint when something is wrong (for example
-"no voltage on VIN-: is 12 V connected?"). Testing parts one at a time finds a bad wire in
+"no voltage on VIN-: is the 5.5 V rail on and S1 on?"). Testing parts one at a time finds a bad wire in
 minutes instead of hours.
 
 ## 12. How to flash and test
