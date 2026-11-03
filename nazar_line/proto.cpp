@@ -67,12 +67,13 @@ void protoHello() {
            "{\"t\":\"hello\",\"fw\":\"%s\","
            "\"sensors\":{\"ina219\":%s,\"mpu6050\":%s,\"bh1750\":%s,\"ds18b20\":%s},"
            "\"cfg\":{\"stop_ms\":%lu,\"dwell_ms\":%lu,\"wait_ms\":%lu,\"gate_ms\":%lu,"
-           "\"gate_open_ms\":%lu,\"stops\":%lu,\"cam\":%lu}}",
+           "\"gate_open_ms\":%lu,\"stops\":%lu,\"cam\":%lu,\"kick\":%lu,\"park_deg\":%lu,\"block_deg\":%lu}}",
            NAZAR_FW_VERSION, p.ina219 ? "true" : "false", p.mpu6050 ? "true" : "false",
            p.bh1750 ? "true" : "false", p.ds18b20 ? "true" : "false",
            (unsigned long)g_cfg.stop_ms, (unsigned long)g_cfg.dwell_ms, (unsigned long)g_cfg.wait_ms,
            (unsigned long)g_cfg.gate_ms, (unsigned long)g_cfg.gate_open_ms, (unsigned long)g_cfg.stops,
-           (unsigned long)g_cfg.cam);
+           (unsigned long)g_cfg.cam, (unsigned long)g_cfg.kick, (unsigned long)g_cfg.park_deg,
+           (unsigned long)g_cfg.block_deg);
   sendLine(out);
 }
 
@@ -86,7 +87,7 @@ void protoTel(const SensorFrame &f) {
   snprintf(out + o, sizeof out - o,
            ",\"ir\":%d,\"parts\":%lu,\"rej\":%lu,\"gate\":%d,\"belt\":%d,\"mode\":\"%s\"}",
            g_line.ir() ? 1 : 0, (unsigned long)g_line.parts(), (unsigned long)gateRejects(),
-           gateIsOpen() ? 1 : 0, beltIsOn() ? 1 : 0, modeName(g_line.mode()));
+           gateIsOut() ? 1 : 0, beltIsOn() ? 1 : 0, modeName(g_line.mode()));
   sendLine(out);
 }
 
@@ -131,13 +132,17 @@ static void cmdSet(const char *line, const char *key, const char *val) {
   else if (!strcmp(key, "GATE_OPEN_MS")) field = &g_cfg.gate_open_ms;
   else if (!strcmp(key, "STOPS")) field = &g_cfg.stops;
   else if (!strcmp(key, "CAM")) field = &g_cfg.cam;
+  else if (!strcmp(key, "KICK")) field = &g_cfg.kick;
+  else if (!strcmp(key, "PARK_DEG")) field = &g_cfg.park_deg;
+  else if (!strcmp(key, "BLOCK_DEG")) field = &g_cfg.block_deg;
   if (!field) {
     char msg[64];
     snprintf(msg, sizeof msg, "unknown SET key %s", key);
     protoErr(msg);
     return;
   }
-  long maxV = (field == &g_cfg.stops || field == &g_cfg.cam) ? 1 : (long)CFG_MAX_MS;
+  long maxV = (field == &g_cfg.stops || field == &g_cfg.cam || field == &g_cfg.kick) ? 1
+              : (field == &g_cfg.park_deg || field == &g_cfg.block_deg) ? 180 : (long)CFG_MAX_MS;
   if (v < 0 || v > maxV) {
     char msg[64];
     snprintf(msg, sizeof msg, "%s must be 0..%ld", key, maxV);
@@ -172,7 +177,10 @@ static void runCommand(char *line) {
   } else if (!strcmp(w0, "SEEN")) {
     reply("SEEN", g_line.seen());
   } else if (!strcmp(w0, "PASS")) {
-    reply("PASS", g_line.pass());
+    const char *refused = g_line.pass();
+    reply("PASS", refused);
+    // continuous mode sends no go: a good part releases the stop gate as soon as it is judged
+    if (!refused && !g_cfg.stops && !g_cfg.kick && g_line.pendingGates() == 0) gateRelease();
   } else if (!strcmp(w0, "FAIL")) {
     reply("FAIL", g_line.fail());
   } else if (!strcmp(w0, "HOLD")) {
@@ -185,7 +193,11 @@ static void runCommand(char *line) {
     reply("START", g_line.start());
   } else if (!strcmp(w0, "REJECT")) {
     protoAck("REJECT");
-    gateFire(0, g_cfg.gate_open_ms);  // n = 0: manual test, not a part
+    if (g_cfg.kick) gateFire(0, g_cfg.gate_open_ms);  // n = 0: manual test, not a part
+    else gateBlock(0);                                 // stop gate: across until RELEASE or the next good part
+  } else if (!strcmp(w0, "RELEASE")) {
+    protoAck("RELEASE");
+    gateRelease();
   } else if (!strcmp(w0, "BELT")) {
     if (!w1 || (strcmp(w1, "1") && strcmp(w1, "0"))) protoErr("BELT needs 1 or 0");
     else reply(full, g_line.manualBelt(w1[0] == '1'));

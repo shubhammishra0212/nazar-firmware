@@ -1,5 +1,5 @@
  /*
-  NAZAR line controller - ESP32 firmware 2.1.0  (INDUX 5.0, Team Parakh)
+  NAZAR line controller - ESP32 firmware 2.2.0  (INDUX 5.0, Team Parakh)
 
   Board : ESP32 Dev Module (DevKitC WROOM), esp32 core 3.x      Serial: 115200, JSON lines
   Libs  : OneWire, DallasTemperature (everything else is raw Wire / LEDC)
@@ -10,7 +10,7 @@
     sensorsUpdate  MPU-6050 at 200 Hz, DS18B20 conversions, retry missing sensors every 3 s
     g_line.update  IR debounce + RUN / INSPECT / HOLD / STOP state machine
                    (cam 1, the default: the console camera sends SEEN for each washer, the IR is only shown)
-    gate / belt    servo closing time, relay follows the state machine
+    gate / belt    arm moves (stop gate: across for a reject until the next good part), relay follows the line
     telemetry      one "tel" line every 100 ms
 */
 #include "config.h"
@@ -25,8 +25,15 @@ LineCfg g_cfg;
 
 static void evPart(uint32_t n) { protoPart(n); }
 static void evInspect(uint32_t n) { protoInspect(n); }
-static void evGo(uint32_t n, const char *res) { protoGo(n, res); }
-static void evGate(uint32_t n) { gateFire(n, g_cfg.gate_open_ms); }
+static void evGo(uint32_t n, const char *res) {
+  protoGo(n, res);
+  // stop gate: a good washer is on its way, so the arm leaves the path (the held reject is off the belt by now)
+  if (!g_cfg.kick && strcmp(res, "reject") != 0 && g_line.pendingGates() == 0) gateRelease();
+}
+static void evGate(uint32_t n) {
+  if (g_cfg.kick) gateFire(n, g_cfg.gate_open_ms);
+  else gateBlock(n);
+}
 static void evLog(const char *msg) { protoLog(msg); }
 static const LineEvents events = {evPart, evInspect, evGo, evGate, evLog};
 
@@ -50,7 +57,7 @@ void loop() {
   if (sensorsUpdate(now)) protoHello();  // a sensor came or went
   g_line.update(now, digitalRead(PIN_IR) == LOW);
   beltSet(g_line.beltOn());
-  gateUpdate(now);
+  gateUpdate(now, beltIsOn());
   if (now - lastTel >= TEL_PERIOD_MS) {
     lastTel += TEL_PERIOD_MS;
     if (now - lastTel >= TEL_PERIOD_MS) lastTel = now;  // fell behind: do not burst

@@ -278,7 +278,16 @@ We build these strings by hand with `snprintf` (fill-in-the-blanks formatting) i
 buffer instead of using a JSON library: it is small, uses no dynamic memory, and the output is
 exactly what the contract shows.
 
-Commands from the Mac are plain text, one per line, upper or lower case: `PING`, `SEEN`, `PASS`,
+**Stop gate** (firmware 2.2, `kick 0`, the default): kicking washers off the belt needs exact
+timing on a slow belt, so the arm now works as a gate. Parked along the rail, washers pass. For a
+reject the arm swings square across the belt `gate_ms` after the restart (the washer is still in
+the tunnel then) and stays there, so the rejected washer is stopped against it while the belt
+slides underneath. The operator takes it off; the next good washer's restart parks the arm again
+(`RELEASE` does it by hand). The arm moves in small steps (400 °/s out, 200 °/s back) and its
+pulses stop 0.6 s after it is parked, which stops the MG996R fluttering on the shared 5.5 V rail.
+`SET park_deg` / `SET block_deg` tune the two angles live; `SET kick 1` brings the kick back.
+
+Commands from the Mac are plain text, one per line, upper or lower case: `PING`, `SEEN`, `RELEASE`, `PASS`,
 `FAIL`, `HOLD`, `RESUME`, `STOP`, `START`, `REJECT`, `BELT 1/0` (only in STOP), `RESET`,
 `SET <key> <number>`. Each is answered with `ack` or with `err` and the reason. The serial
 link runs at 115 200 baud (about 11 500 characters a second); the status lines use about 15 % of

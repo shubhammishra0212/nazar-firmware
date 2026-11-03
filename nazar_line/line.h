@@ -16,7 +16,7 @@ struct LineEvents {
   void (*part)(uint32_t n);                 // part n passed the IR sensor (cam 0) or was seen by the camera (cam 1)
   void (*inspect)(uint32_t n);              // part n is under the camera
   void (*go)(uint32_t n, const char *res);  // belt restarted: pass / reject / hold-released / timeout
-  void (*fireGate)(uint32_t n);             // open the reject gate for part n now
+  void (*fireGate)(uint32_t n);             // reject part n is due at the gate: swing the arm across now
   void (*log)(const char *msg);             // free text
 };
 

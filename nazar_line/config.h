@@ -4,7 +4,7 @@
 #pragma once
 #include <stdint.h>
 
-#define NAZAR_FW_VERSION "2.1.0"
+#define NAZAR_FW_VERSION "2.2.0"
 
 // ---------- pins (ESP32 DevKitC, wiring v5 + relay)
 constexpr int PIN_SDA = 21;
@@ -41,8 +41,10 @@ constexpr int ARRIVAL_SLOTS = 4;           // parts between the IR sensor and th
 constexpr int GATE_SLOTS = 8;              // FAIL parts between the camera and the gate
 
 // ---------- reject gate servo (MG996R)
-constexpr int GATE_CLOSED_DEG = 0;
-constexpr int GATE_OPEN_DEG = 70;
+// angles are in LineCfg (park_deg / block_deg) so they can be tuned with SET while the line runs
+constexpr float GATE_OUT_DEG_S = 400.0f;    // swing across about as fast as an MG996R can go, in small steps
+constexpr float GATE_BACK_DEG_S = 200.0f;   // park gently
+constexpr uint32_t GATE_IDLE_MS = 600;      // parked this long -> pulses off (no hunting / flutter at rest)
 constexpr uint32_t SERVO_HZ = 50;
 constexpr uint8_t SERVO_BITS = 14;         // 20 ms / 16384 = 1.2 us per step
 constexpr uint32_t SERVO_MIN_US = 500;     // pulse at 0 deg
@@ -53,10 +55,13 @@ struct LineCfg {
   uint32_t stop_ms = 150;       // IR edge -> part centred under the camera (belt running time)
   uint32_t dwell_ms = 1200;     // minimum stop under the camera
   uint32_t wait_ms = 5000;      // no verdict by then -> go "timeout" (part passes)
-  uint32_t gate_ms = 800;       // belt running time from restart to the gate for a FAIL
-  uint32_t gate_open_ms = 600;  // how long the gate stays open
+  uint32_t gate_ms = 800;       // belt running time from restart until the arm swings across for a FAIL
+  uint32_t gate_open_ms = 600;  // kick 1 only: how long the arm stays out (belt running time; clock time for REJECT)
   uint32_t stops = 1;           // 1 = stop-and-inspect, 0 = continuous
   uint32_t cam = 1;             // 1 = the console camera finds each washer (SEEN), IR ignored; 0 = FC-51 IR sensor
+  uint32_t kick = 0;            // 0 = stop gate: arm across the belt for a reject until the next good part; 1 = kick
+  uint32_t park_deg = 0;        // servo angle with the arm parked along the rail: washers pass (0..180)
+  uint32_t block_deg = 90;      // servo angle with the arm square across the belt: the reject is stopped
 };
 
 constexpr uint32_t CFG_MAX_MS = 60000;
