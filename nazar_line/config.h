@@ -4,7 +4,7 @@
 #pragma once
 #include <stdint.h>
 
-#define NAZAR_FW_VERSION "2.0.0"
+#define NAZAR_FW_VERSION "2.1.0"
 
 // ---------- pins (ESP32 DevKitC, wiring v5 + relay)
 constexpr int PIN_SDA = 21;
@@ -56,6 +56,7 @@ struct LineCfg {
   uint32_t gate_ms = 800;       // belt running time from restart to the gate for a FAIL
   uint32_t gate_open_ms = 600;  // how long the gate stays open
   uint32_t stops = 1;           // 1 = stop-and-inspect, 0 = continuous
+  uint32_t cam = 1;             // 1 = the console camera finds each washer (SEEN), IR ignored; 0 = FC-51 IR sensor
 };
 
 constexpr uint32_t CFG_MAX_MS = 60000;

@@ -62,16 +62,17 @@ void protoBegin() {
 
 void protoHello() {
   const SensorPresence &p = sensorsPresent();
-  char out[256];
+  char out[320];
   snprintf(out, sizeof out,
            "{\"t\":\"hello\",\"fw\":\"%s\","
            "\"sensors\":{\"ina219\":%s,\"mpu6050\":%s,\"bh1750\":%s,\"ds18b20\":%s},"
            "\"cfg\":{\"stop_ms\":%lu,\"dwell_ms\":%lu,\"wait_ms\":%lu,\"gate_ms\":%lu,"
-           "\"gate_open_ms\":%lu,\"stops\":%lu}}",
+           "\"gate_open_ms\":%lu,\"stops\":%lu,\"cam\":%lu}}",
            NAZAR_FW_VERSION, p.ina219 ? "true" : "false", p.mpu6050 ? "true" : "false",
            p.bh1750 ? "true" : "false", p.ds18b20 ? "true" : "false",
            (unsigned long)g_cfg.stop_ms, (unsigned long)g_cfg.dwell_ms, (unsigned long)g_cfg.wait_ms,
-           (unsigned long)g_cfg.gate_ms, (unsigned long)g_cfg.gate_open_ms, (unsigned long)g_cfg.stops);
+           (unsigned long)g_cfg.gate_ms, (unsigned long)g_cfg.gate_open_ms, (unsigned long)g_cfg.stops,
+           (unsigned long)g_cfg.cam);
   sendLine(out);
 }
 
@@ -129,13 +130,14 @@ static void cmdSet(const char *line, const char *key, const char *val) {
   else if (!strcmp(key, "GATE_MS")) field = &g_cfg.gate_ms;
   else if (!strcmp(key, "GATE_OPEN_MS")) field = &g_cfg.gate_open_ms;
   else if (!strcmp(key, "STOPS")) field = &g_cfg.stops;
+  else if (!strcmp(key, "CAM")) field = &g_cfg.cam;
   if (!field) {
     char msg[64];
     snprintf(msg, sizeof msg, "unknown SET key %s", key);
     protoErr(msg);
     return;
   }
-  long maxV = field == &g_cfg.stops ? 1 : (long)CFG_MAX_MS;
+  long maxV = (field == &g_cfg.stops || field == &g_cfg.cam) ? 1 : (long)CFG_MAX_MS;
   if (v < 0 || v > maxV) {
     char msg[64];
     snprintf(msg, sizeof msg, "%s must be 0..%ld", key, maxV);
@@ -167,6 +169,8 @@ static void runCommand(char *line) {
   if (!strcmp(w0, "PING")) {
     sendLine("{\"t\":\"pong\"}");
     protoHello();
+  } else if (!strcmp(w0, "SEEN")) {
+    reply("SEEN", g_line.seen());
   } else if (!strcmp(w0, "PASS")) {
     reply("PASS", g_line.pass());
   } else if (!strcmp(w0, "FAIL")) {

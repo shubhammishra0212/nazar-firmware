@@ -30,11 +30,12 @@ struct Rig {
   Line line;
   LineCfg cfg;
   bool ir = false;
-  explicit Rig(uint32_t stops = 1) {
+  explicit Rig(uint32_t stops = 1, uint32_t cam = 0) {  // cam 0: the IR scenarios below
     events.clear();
     gateFiredCount = 0;
     now = 1000;
     cfg.stops = stops;
+    cfg.cam = cam;
     line.begin(&EV, &cfg, now, false);
   }
   void run(uint32_t ms) {  // advance the clock 1 ms at a time
@@ -258,6 +259,44 @@ static void testManualBeltRules() {
   CHECK(!r.line.beltOn(), "manual belt is cleared by START");
 }
 
+static void testCameraTrigger() {
+  title("12. cam 1: SEEN stops the belt at once, the IR is ignored, FAIL still reaches the gate");
+  Rig r(1, 1);
+  r.pulse();
+  r.run(500);
+  CHECK(!has("part 1") && r.line.parts() == 0, "IR edge ignored with the camera trigger");
+  CHECK(r.line.seen() == nullptr, "SEEN accepted while the belt runs");
+  CHECK(r.line.seen() != nullptr, "second SEEN before the stop refused");
+  r.run(1);
+  CHECK(has("part 1") && has("inspect 1"), "part and inspect in the same tick");
+  CHECK(!r.line.beltOn() && r.line.mode() == Mode::INSPECT, "belt off at once, mode INSPECT");
+  CHECK(r.line.seen() != nullptr, "SEEN refused while inspecting");
+  r.run(100);
+  CHECK(r.line.fail() == nullptr, "FAIL accepted");
+  uint32_t goAt = r.until("go 1 reject");
+  uint32_t gateAt = r.until("gate 1");
+  CHECK(gateAt - goAt == r.cfg.gate_ms, "gate fires gate_ms after the restart");
+  r.line.stop();
+  CHECK(r.line.seen() != nullptr, "SEEN refused in STOP");
+  r.line.start();
+  r.cfg.cam = 0;
+  CHECK(r.line.seen() != nullptr, "SEEN refused with cam 0");
+}
+
+static void testCameraContinuous() {
+  title("13. cam 1 + stops 0: FAIL gates gate_ms of running after SEEN");
+  Rig r(0, 1);
+  r.run(10);
+  uint32_t seenAt = now;
+  CHECK(r.line.seen() == nullptr, "SEEN accepted");
+  r.until("inspect 1");
+  CHECK(r.line.beltOn(), "belt keeps running");
+  r.run(200);
+  CHECK(r.line.fail() == nullptr, "FAIL accepted for the most recent part");
+  uint32_t gateAt = r.until("gate 1");
+  CHECK(gateAt - seenAt == r.cfg.gate_ms, "gate gate_ms of running after the camera saw it");
+}
+
 int main() {
   testPass();
   testFail();
@@ -270,6 +309,8 @@ int main() {
   testDebounce();
   testManualBeltRules();
   testMillisWrap();
+  testCameraTrigger();
+  testCameraContinuous();
   printf("\n%d checks, %d failed -> %s\n", checks, failures, failures ? "FAIL" : "PASS");
   return failures ? 1 : 0;
 }

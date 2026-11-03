@@ -1,6 +1,7 @@
 // line.cpp - conveyor state machine. See line.h and CONTRACT.md section 2.
 //
-//   IR rising edge --> part msg, arrival timer = stop_ms of belt running time
+//   IR rising edge (cam 0) --> part msg, arrival timer = stop_ms of belt running time
+//   SEEN from the console camera (cam 1) --> part msg, arrival timer 0 (the washer is already under the camera)
 //   arrival timer 0 --> belt off, INSPECT, inspect msg
 //   PASS / FAIL / timeout (after dwell_ms) --> go msg, belt on
 //   FAIL --> gate timer = gate_ms of belt running time --> fireGate
@@ -61,7 +62,8 @@ void Line::update(uint32_t nowMs, bool irPresent) {
   }
   if (irRaw_ != irStable_ && nowMs - irChangedAt_ >= IR_DEBOUNCE_MS) {
     irStable_ = irRaw_;
-    if (irStable_ && wasRunning) onRisingEdge();  // edges with the belt off are hands, not parts
+    // edges with the belt off are hands, not parts; with the camera trigger the IR is only shown, never counted
+    if (irStable_ && wasRunning && !cfg_->cam) newPart(cfg_->stop_ms);
   }
 
   // 3. gate timers that reached the gate
@@ -98,14 +100,15 @@ void Line::update(uint32_t nowMs, bool irPresent) {
   }
 }
 
-void Line::onRisingEdge() {
+void Line::newPart(uint32_t lead) {
   parts_++;
   if (ev_ && ev_->part) ev_->part(parts_);
   lastN_ = parts_;
-  lastIrRun_ = runClock_;
+  lastPartRun_ = runClock_;
+  lastLead_ = lead;
   lastDecided_ = false;
   if (arrCount_ < ARRIVAL_SLOTS) {
-    arr_[arrCount_++] = {parts_, cfg_->stop_ms};
+    arr_[arrCount_++] = {parts_, lead};
   } else {
     say("arrival queue full: part will not stop under the camera");
   }
@@ -124,6 +127,14 @@ void Line::queueGate(uint32_t n, uint32_t left) {
   } else {
     say("gate queue full: reject dropped");
   }
+}
+
+const char *Line::seen() {
+  if (!cfg_->cam) return "camera trigger is off (SET CAM 1)";
+  if (!running()) return "belt is not running";             // stopped, on hold or already inspecting
+  if (arrCount_ > 0) return "a part is already on its way to the camera";
+  newPart(0);  // inspected in the next update(): belt off at once in stop-and-inspect
+  return nullptr;
 }
 
 const char *Line::pass() {
@@ -149,7 +160,7 @@ const char *Line::fail() {
   }
   if (!cfg_->stops && !lastDecided_) {
     // continuous: the part never stopped, so the gate is due gate_ms after it passed the camera
-    uint32_t dueAt = lastIrRun_ + cfg_->stop_ms + cfg_->gate_ms;
+    uint32_t dueAt = lastPartRun_ + lastLead_ + cfg_->gate_ms;
     queueGate(lastN_, minus(dueAt, runClock_));
     lastDecided_ = true;
     return nullptr;

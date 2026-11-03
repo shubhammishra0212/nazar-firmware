@@ -13,7 +13,7 @@ const char *modeName(Mode m);
 
 // What the line tells the outside world. Any pointer may be null.
 struct LineEvents {
-  void (*part)(uint32_t n);                 // part n passed the IR sensor
+  void (*part)(uint32_t n);                 // part n passed the IR sensor (cam 0) or was seen by the camera (cam 1)
   void (*inspect)(uint32_t n);              // part n is under the camera
   void (*go)(uint32_t n, const char *res);  // belt restarted: pass / reject / hold-released / timeout
   void (*fireGate)(uint32_t n);             // open the reject gate for part n now
@@ -28,6 +28,7 @@ class Line {
   void update(uint32_t nowMs, bool irPresent);
 
   // Commands. Each returns nullptr when accepted, otherwise the reason it was refused.
+  const char *seen();  // cam 1: the console camera sees a washer under it now -> stop and inspect at once
   const char *pass();
   const char *fail();
   const char *hold();
@@ -51,7 +52,7 @@ class Line {
   struct Timer { uint32_t n; uint32_t left; };  // "left" counts belt running time only
 
   bool running() const { return !stopped_ && !held_ && !inspecting_; }
-  void onRisingEdge();
+  void newPart(uint32_t lead);  // lead = belt running time until the part is under the camera
   void finishInspection(const char *res, bool reject);
   void queueGate(uint32_t n, uint32_t left);
   void say(const char *msg) const;
@@ -77,7 +78,7 @@ class Line {
   uint32_t runClock_ = 0;  // total belt running time (auto mode), ms
 
   // continuous mode: the most recent part can still get a verdict
-  uint32_t lastN_ = 0, lastIrRun_ = 0;
+  uint32_t lastN_ = 0, lastPartRun_ = 0, lastLead_ = 0;
   bool lastDecided_ = true;
 
   Timer arr_[ARRIVAL_SLOTS];  // IR -> camera

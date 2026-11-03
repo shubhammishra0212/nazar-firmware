@@ -234,6 +234,15 @@ reaches the gate.
 IR edges are ignored while the belt is off, because nothing can move then: a change is a hand,
 not a part.
 
+**Camera trigger** (firmware 2.1, `cam 1`, the default): the FC-51 did not see every washer on
+our belt, so the console camera finds the parts instead. While the belt runs, the console sends
+small camera frames to the vision service (`/locate`); as soon as a whole washer is in the middle
+of the picture it sends `SEEN`. The board then counts the part, switches the belt off at once and
+sends `inspect`, exactly as if an IR edge had arrived with `stop_ms` = 0. Everything after that
+(verdict, `dwell_ms`, `gate_ms`, the servo) is unchanged. The IR sensor stays wired and is still
+reported in `ir`, but it no longer counts parts. `SET cam 0` goes back to the IR sensor without
+touching a wire.
+
 ## 9. Non-blocking timing
 
 The board must do many things "at once": sample vibration 200 times a second, send status 10
@@ -269,7 +278,7 @@ We build these strings by hand with `snprintf` (fill-in-the-blanks formatting) i
 buffer instead of using a JSON library: it is small, uses no dynamic memory, and the output is
 exactly what the contract shows.
 
-Commands from the Mac are plain text, one per line, upper or lower case: `PING`, `PASS`,
+Commands from the Mac are plain text, one per line, upper or lower case: `PING`, `SEEN`, `PASS`,
 `FAIL`, `HOLD`, `RESUME`, `STOP`, `START`, `REJECT`, `BELT 1/0` (only in STOP), `RESET`,
 `SET <key> <number>`. Each is answered with `ack` or with `err` and the reason. The serial
 link runs at 115 200 baud (about 11 500 characters a second); the status lines use about 15 % of

@@ -1,5 +1,5 @@
  /*
-  NAZAR line controller - ESP32 firmware 2.0.0  (INDUX 5.0, Team Parakh)
+  NAZAR line controller - ESP32 firmware 2.1.0  (INDUX 5.0, Team Parakh)
 
   Board : ESP32 Dev Module (DevKitC WROOM), esp32 core 3.x      Serial: 115200, JSON lines
   Libs  : OneWire, DallasTemperature (everything else is raw Wire / LEDC)
@@ -9,6 +9,7 @@
     protoPoll      read commands from the Mac console
     sensorsUpdate  MPU-6050 at 200 Hz, DS18B20 conversions, retry missing sensors every 3 s
     g_line.update  IR debounce + RUN / INSPECT / HOLD / STOP state machine
+                   (cam 1, the default: the console camera sends SEEN for each washer, the IR is only shown)
     gate / belt    servo closing time, relay follows the state machine
     telemetry      one "tel" line every 100 ms
 */
